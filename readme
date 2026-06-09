@@ -1,1 +1,235 @@
 
+Open In Colab
+Task 2: MOVIE RATING PREDICTION WITH PYTHON
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+     
+
+df_movie=pd.read_csv('/content/IMDb Movies India.csv.zip', sep=',', engine='python', encoding='latin1')
+df_movie=df_movie.dropna()
+df_movie.head()
+     
+Name	Year	Duration	Genre	Rating	Votes	Director	Actor 1	Actor 2	Actor 3
+1	#Gadhvi (He thought he was Gandhi)	(2019)	109 min	Drama	7.0	8	Gaurav Bakshi	Rasika Dugal	Vivek Ghamande	Arvind Jangid
+3	#Yaaram	(2019)	110 min	Comedy, Romance	4.4	35	Ovais Khan	Prateik	Ishita Raj	Siddhant Kapoor
+5	...Aur Pyaar Ho Gaya	(1997)	147 min	Comedy, Drama, Musical	4.7	827	Rahul Rawail	Bobby Deol	Aishwarya Rai Bachchan	Shammi Kapoor
+6	...Yahaan	(2005)	142 min	Drama, Romance, War	7.4	1,086	Shoojit Sircar	Jimmy Sheirgill	Minissha Lamba	Yashpal Sharma
+8	?: A Question Mark	(2012)	82 min	Horror, Mystery, Thriller	5.6	326	Allyson Patel	Yash Dave	Muntazir Ahmad	Kiran Bhatia
+
+df_movie.shape
+     
+(5659, 10)
+
+df_movie.isna().sum()
+     
+0
+Name	0
+Year	0
+Duration	0
+Genre	0
+Rating	0
+Votes	0
+Director	0
+Actor 1	0
+Actor 2	0
+Actor 3	0
+
+dtype: int64
+
+df_movie.info()
+     
+<class 'pandas.core.frame.DataFrame'>
+Index: 5659 entries, 1 to 15508
+Data columns (total 10 columns):
+ #   Column    Non-Null Count  Dtype  
+---  ------    --------------  -----  
+ 0   Name      5659 non-null   object 
+ 1   Year      5659 non-null   object 
+ 2   Duration  5659 non-null   object 
+ 3   Genre     5659 non-null   object 
+ 4   Rating    5659 non-null   float64
+ 5   Votes     5659 non-null   object 
+ 6   Director  5659 non-null   object 
+ 7   Actor 1   5659 non-null   object 
+ 8   Actor 2   5659 non-null   object 
+ 9   Actor 3   5659 non-null   object 
+dtypes: float64(1), object(9)
+memory usage: 486.3+ KB
+
+df_movie.describe()
+     
+Rating
+count	5659.000000
+mean	5.898533
+std	1.381165
+min	1.100000
+25%	5.000000
+50%	6.100000
+75%	6.900000
+max	10.000000
+
+df_movie.duplicated().sum()
+     
+np.int64(0)
+
+df_movie.dropna(inplace=True)
+     
+
+df_movie.columns
+     
+Index(['Name', 'Year', 'Duration', 'Genre', 'Rating', 'Votes', 'Director',
+       'Actor 1', 'Actor 2', 'Actor 3'],
+      dtype='object')
+
+#Remove the min word from the 'Duration'column and convert all values to numeric
+df_movie['Duration']=pd.to_numeric(df_movie['Duration'].astype(str).str.replace(' min',''))
+     
+
+#Splitting the genre by, to keep only unique genres and replacing the null values with mode
+df_movie['Genre']=df_movie['Genre'].str.split(',')
+df_movie=df_movie.explode('Genre')
+df_movie['Genre'].fillna(df_movie['Genre'].mode()[0], inplace=True)
+     
+/tmp/ipykernel_4011/1806098869.py:4: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  df_movie['Genre'].fillna(df_movie['Genre'].mode()[0], inplace=True)
+
+#Replacing the brackets from year column
+df_movie['Year']=df_movie['Year'].str.replace(r'[()]', '', regex=True).astype(int)
+     
+
+#Convert "Votes" to numeric and replce the,to keep only numerical part
+df_movie['Votes']=pd.to_numeric(df_movie['Votes'].astype(str).str.replace(',',''))
+     
+
+#Checking the dataset is there any null values present and data types of the features present
+df_movie.info()
+     
+<class 'pandas.core.frame.DataFrame'>
+Index: 11979 entries, 1 to 15508
+Data columns (total 10 columns):
+ #   Column    Non-Null Count  Dtype  
+---  ------    --------------  -----  
+ 0   Name      11979 non-null  object 
+ 1   Year      11979 non-null  int64  
+ 2   Duration  11979 non-null  int64  
+ 3   Genre     11979 non-null  object 
+ 4   Rating    11979 non-null  float64
+ 5   Votes     11979 non-null  int64  
+ 6   Director  11979 non-null  object 
+ 7   Actor 1   11979 non-null  object 
+ 8   Actor 2   11979 non-null  object 
+ 9   Actor 3   11979 non-null  object 
+dtypes: float64(1), int64(3), object(6)
+memory usage: 1.0+ MB
+
+#Here we created a histogram over the years in the data
+year=px.histogram(df_movie,x='Year',histnorm='probability density',nbins=20)
+year.show()
+     
+
+avg_rating_by_year=df_movie.groupby(['Year','Genre'])['Rating'].mean().reset_index()
+top_genres=df_movie['Genre'].value_counts().head(14).index
+average_rating_by_year=avg_rating_by_year[avg_rating_by_year['Genre'].isin(top_genres)]
+fig=px.line(average_rating_by_year,x='Year',y='Rating',color='Genre')
+fig.update_layout(title='Average Rating by Year and Genre',xaxis_title='Year',yaxis_title='Average Rating')
+fig.show()
+     
+
+rating_fig=px.histogram(df_movie,x='Rating',histnorm='probability density',nbins=40)
+rating_fig.update_layout(title='Distribution of Rating',title_x=0.5,title_pad=dict(t=20),title_font=dict(size=10),xaxis_title='Rating',yaxis_title='Probability Density')
+rating_fig.show()
+     
+
+from sklearn.model_selection import train_test_split,cross_val_score
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import accuracy_score,mean_absolute_error,mean_squared_error,r2_score
+     
+
+#Grouping the colums with their average rating and then creating a new feature
+genre_mean_rating=df_movie.groupby('Genre')['Rating'].transform('mean')
+df_movie['Genre_Mean_Rating']=genre_mean_rating
+director_mean_rating=df_movie.groupby('Director')['Rating'].transform('mean')
+df_movie['Director_Mean_Rating']=director_mean_rating
+actor1_mean_rating=df_movie.groupby('Actor 1')['Rating'].transform('mean')
+df_movie['Actor1_Mean_Rating']=actor1_mean_rating
+actor2_mean_rating=df_movie.groupby('Actor 2')['Rating'].transform('mean')
+df_movie['Actor2_Mean_Rating']=actor2_mean_rating
+actor3_mean_rating=df_movie.groupby('Actor 3')['Rating'].transform('mean')
+df_movie['Actor3_Mean_Rating']=actor3_mean_rating
+     
+
+x = df_movie[['Year', 'Duration', 'Genre_Mean_Rating', 'Director_Mean_Rating', 'Actor1_Mean_Rating', 'Actor2_Mean_Rating', 'Actor3_Mean_Rating']]
+y = df_movie['Rating']
+#Splitting the dataset into taining and testing parts
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.2,random_state=42)
+     
+Model building
+
+
+#Building Machine Learning and training them
+Model=LinearRegression()
+Model.fit(x_train,y_train)
+Model.pred=Model.predict(x_test)
+     
+
+#Evaluating the performance of the model with evaluation metrics
+print('The performance evaluation of Logistic Regression is below;','\n')
+print('Mean Absolute Error:',mean_absolute_error(y_test,Model.pred))
+print('Mean Squared Error:',mean_squared_error(y_test,Model.pred))
+print('R2 Score:',r2_score(y_test,Model.pred))
+     
+The performance evaluation of Logistic Regression is below; 
+
+Mean Absolute Error: 0.49707230120957213
+Mean Squared Error: 0.45481711982395023
+R2 Score: 0.759743184172271
+Model Testing
+
+
+x.head(8)
+     
+Year	Duration	Genre_Mean_Rating	Director_Mean_Rating	Actor1_Mean_Rating	Actor2_Mean_Rating	Actor3_Mean_Rating
+1	2019	109	6.248697	7.000000	6.850000	7.000000	7.000000
+3	2019	110	5.838423	4.400000	5.250000	4.400000	4.460000
+3	2019	110	5.838739	4.400000	5.250000	4.400000	4.460000
+5	1997	147	5.838423	5.335135	4.793617	5.730000	5.930000
+5	1997	147	5.875793	5.335135	4.793617	5.730000	5.930000
+5	1997	147	6.289130	5.335135	4.793617	5.730000	5.930000
+6	2005	142	6.248697	7.407143	5.456863	6.828571	6.671429
+6	2005	142	5.838739	7.407143	5.456863	6.828571	6.671429
+
+y.head(8)
+     
+Rating
+1	7.0
+3	4.4
+3	4.4
+5	4.7
+5	4.7
+5	4.7
+6	7.4
+6	7.4
+
+dtype: float64
+
+#For testing,we create a new dataframe with values close to the any of our existing data to evaluate.
+data={'Year':[2019],'Duration':[111],'Votes':[36],'Genre_Mean_Rating':[5.8],'Director_Mean_Rating':[4.5],'Actor1_Mean_Rating':[5.3],'Actor2_Mean_Rating':[4.5],'Actor3_Mean_Rating':[4.5]}
+trail=pd.DataFrame(data)
+     
+
+#Predict the movie rating by entered data
+rating_predicted = Model.predict(trail.drop(columns=['Votes']))
+#Display the predicted result from the Model
+print('The predicted rating is:',rating_predicted)
+     
+The predicted rating is: [4.2156025]
